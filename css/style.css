@@ -95,12 +95,12 @@ h1 { font-size: 2.6rem; margin-bottom: 12px; }
   justify-content: center;
 }
 .visual.grid { font-size: 2.2rem; }
-.visual.grid > * {
+.visual.grid > .cell {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.8em;
-  min-height: 1.8em;
+  min-width: 2.4em;
+  min-height: 2.4em;
   padding: 6px;
   background: #f4f8ff;
   border-radius: 12px;
@@ -139,7 +139,7 @@ h1 { font-size: 2.6rem; margin-bottom: 12px; }
 #timer-bar { height: 100%; width: 100%; background: #ffb347; }
 
 /* Styled items */
-.visual > span, .choice > span { display: inline-block; }
+:where(.visual, .choice) span { display: inline-block; }
 .shadow { filter: brightness(0); opacity: 0.75; }
 .shape { width: 1em; height: 1em; }
 .shape-circle { border-radius: 50%; }
@@ -150,8 +150,8 @@ h1 { font-size: 2.6rem; margin-bottom: 12px; }
 /* Block-design patterns: R red, W white, a/b/c/d half red in TL/TR/BR/BL corner */
 span.blocks {
   display: inline-grid;
-  grid-template-columns: repeat(var(--n), 0.8em);
-  grid-auto-rows: 0.8em;
+  grid-template-columns: repeat(var(--n), 1em);
+  grid-auto-rows: 1em;
   border: 3px solid #555;
   vertical-align: middle;
 }

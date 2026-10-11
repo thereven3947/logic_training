@@ -87,7 +87,14 @@ function fillBox(box, items, grid) {
   box.innerHTML = "";
   box.classList.toggle("grid", !!grid);
   box.style.setProperty("--cols", grid || "");
-  items.forEach((item) => box.appendChild(renderItem(item)));
+  items.forEach((item) => {
+    const node = renderItem(item);
+    if (!grid) return box.appendChild(node);
+    // Fixed-size cells so a small item doesn't shrink its grid square.
+    const cell = el("div", "cell");
+    cell.appendChild(node);
+    box.appendChild(cell);
+  });
 }
 
 function setPrompt(text, say = text) {
