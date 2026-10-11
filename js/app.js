@@ -5,6 +5,16 @@ const MAX_MISSES_IN_A_ROW = 2;
 // Speed rounds forgive one stray tap.
 const SPEED_MISTAKES_ALLOWED = 1;
 
+// Items per area in one game, by age. Each game draws this many from the much
+// larger bank, so repeat players see different puzzles.
+const ITEMS_PER_TEST = {
+  3: { fluid: 4, verbal: 4, spatial: 4, memory: 3, speed: 0, quant: 3 },
+  4: { fluid: 5, verbal: 5, spatial: 5, memory: 4, speed: 2, quant: 4 },
+  5: { fluid: 5, verbal: 5, spatial: 5, memory: 4, speed: 3, quant: 4 },
+  6: { fluid: 5, verbal: 5, spatial: 5, memory: 4, speed: 3, quant: 5 },
+  7: { fluid: 5, verbal: 5, spatial: 4, memory: 5, speed: 3, quant: 5 },
+};
+
 // Play score: an IQ-style number with NO norms behind it. 100 is pinned to an
 // assumed (not measured) first-try rate for a typical child on age-matched items;
 // each 10% above/below moves it 10 points, clamped to 70–130 and rounded to 5s.
@@ -67,6 +77,22 @@ function shuffle(arr) {
   return arr;
 }
 
+const pickOne = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+// Show choices in a new order each time so the right answer's position can't be
+// memorised. Grids keep their layout (the position is the answer), and items
+// whose spoken prompt lists the choices keep the order it reads them in.
+function shuffledChoices(q) {
+  if (q.choiceGrid || q.type === "speed" || q.say) return q;
+  const order = shuffle(q.choices.map((_, i) => i));
+  const moved = (i) => order.indexOf(i);
+  return {
+    ...q,
+    choices: order.map((i) => q.choices[i]),
+    answer: Array.isArray(q.answer) ? q.answer.map(moved).sort((a, b) => a - b) : moved(q.answer),
+  };
+}
+
 // ── Rendering ──
 
 function renderItem(item) {
@@ -80,6 +106,9 @@ function renderItem(item) {
     for (const code of item.blocks) {
       node.appendChild(code === "?" ? el("span", "blank", "?") : el("span", `block b-${code}`));
     }
+  } else if (item.label) {
+    node = el("span", "labelled");
+    node.append(el("span", "", item.e), el("small", "", item.label));
   } else if (item.shape) {
     node = el("span", `shape shape-${item.shape}`);
     node.style.background = item.color;
@@ -130,9 +159,31 @@ function hideTimer() {
 
 // ── Game flow ──
 
+const levelOf = (q) => q.level ?? (q.ages[0] + q.ages[1]) / 2;
+const kindOf = (q) => q.kind ?? "classic";
+
+// Random items running easy → hard: sort the age-matched pool by difficulty,
+// cut it into `count` bands and take one item from each, preferring a kind of
+// puzzle not used yet in this area.
+function pickItems(pool, count) {
+  const sorted = shuffle([...pool]).sort((a, b) => levelOf(a) - levelOf(b));
+  const used = new Set();
+  return Array.from({ length: Math.min(count, sorted.length) }, (_, i) => {
+    const band = sorted.slice(Math.floor((i * sorted.length) / count), Math.floor(((i + 1) * sorted.length) / count));
+    const kinds = [...new Set(band.map(kindOf))];
+    const fresh = kinds.filter((k) => !used.has(k));
+    const kind = pickOne(fresh.length ? fresh : kinds);
+    used.add(kind);
+    return pickOne(band.filter((q) => kindOf(q) === kind));
+  });
+}
+
 function buildQueue(age) {
   return DOMAINS.flatMap((d) =>
-    QUESTIONS.filter((q) => q.domain === d.key && age >= q.ages[0] && age <= q.ages[1])
+    pickItems(
+      QUESTIONS.filter((q) => q.domain === d.key && age >= q.ages[0] && age <= q.ages[1]),
+      ITEMS_PER_TEST[age][d.key]
+    )
   );
 }
 
@@ -185,6 +236,7 @@ function startSpeed(q) {
 }
 
 function askChoices(q) {
+  q = shuffledChoices(q);
   state.current = q;
   state.found = new Set();
   state.mistakes = 0;

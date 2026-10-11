@@ -140,6 +140,8 @@ h1 { font-size: 2.6rem; margin-bottom: 12px; }
 
 /* Styled items */
 :where(.visual, .choice) span { display: inline-block; }
+.labelled { display: inline-flex; flex-direction: column; align-items: center; }
+.labelled small { font-size: 1.1rem; }
 .shadow { filter: brightness(0); opacity: 0.75; }
 .shape { width: 1em; height: 1em; }
 .shape-circle { border-radius: 50%; }
