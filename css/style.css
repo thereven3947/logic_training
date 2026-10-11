@@ -140,6 +140,12 @@ h1 { font-size: 2.6rem; margin-bottom: 12px; }
 
 /* Styled items */
 :where(.visual, .choice) span { display: inline-block; }
+.dice {
+  display: inline-grid; grid-template: repeat(3, 0.26em) / repeat(3, 0.26em); gap: 0.05em; padding: 0.1em;
+  background: #fff; border: 3px solid #555; border-radius: 0.18em;
+}
+.dice i { border-radius: 50%; }
+.dice i.on { background: #333; }
 .labelled { display: inline-flex; flex-direction: column; align-items: center; }
 .labelled small { font-size: 1.1rem; }
 .shadow { filter: brightness(0); opacity: 0.75; }

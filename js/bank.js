@@ -44,9 +44,9 @@
     return { choices, answer: rights.map((r) => choices.indexOf(r)).sort((a, b) => a - b) };
   }
 
-  // Number choices: the answer plus nearby wrong numbers (never negative or repeated).
-  function mixNums(right, wrongs) {
-    const ok = [...new Set(wrongs)].filter((n) => n >= 0 && n !== right);
+  // Number choices: the answer plus nearby wrong numbers (never negative, repeated or above max).
+  function mixNums(right, wrongs, max = Infinity) {
+    const ok = [...new Set(wrongs)].filter((n) => n >= 0 && n <= max && n !== right);
     return mix(String(right), ok.slice(0, 2).map(String));
   }
 
@@ -138,7 +138,10 @@
   const COUNT = [["🍎", "apple", "apples"], ["🐤", "chick", "chicks"], ["⭐", "star", "stars"], ["🐟", "fish", "fish"],
     ["🌸", "flower", "flowers"], ["🍪", "cookie", "cookies"], ["🎈", "balloon", "balloons"], ["🐞", "ladybug", "ladybugs"],
     ["🚗", "car", "cars"], ["🍓", "strawberry", "strawberries"], ["⚽", "ball", "balls"], ["🐸", "frog", "frogs"],
-    ["🦋", "butterfly", "butterflies"], ["🐢", "turtle", "turtles"], ["🐦", "bird", "birds"], ["🧁", "cupcake", "cupcakes"]];
+    ["🦋", "butterfly", "butterflies"], ["🐢", "turtle", "turtles"], ["🐦", "bird", "birds"], ["🧁", "cupcake", "cupcakes"],
+    ["🍩", "donut", "donuts"], ["🐝", "bee", "bees"], ["🍌", "banana", "bananas"], ["🥕", "carrot", "carrots"],
+    ["🦆", "duck", "ducks"], ["🐌", "snail", "snails"], ["🎁", "present", "presents"], ["🍄", "mushroom", "mushrooms"],
+    ["🐙", "octopus", "octopuses"], ["🐑", "sheep", "sheep"], ["🍋", "lemon", "lemons"], ["🐣", "baby chick", "baby chicks"]];
   const COUNT_EMOJI = COUNT.map(([e]) => e);
 
   const PATTERN = ["🔴", "🔵", "🟢", "🟡", "🟣", "🟠", "⭐", "🌙", "❤️", "🐶", "🐱", "🍎", "🍌", "🚗", "🌸", "⚽", "🐸", "🎈"];
@@ -722,7 +725,7 @@
   for (const [e, one, many] of COUNT) {
     for (const n of range(1, 5)) {
       const options = [n - 1, n + 1, n + 2].filter((m) => m >= 1).slice(0, 2);
-      add("quant", n <= 3 ? "which-has-n" : "which-has-n-big", n <= 3 ? [3, 4] : [3, 5], n <= 3 ? 3.1 : 4.0, {
+      add("quant", n <= 3 ? "which-has-n" : "which-has-n-big", n <= 3 ? [3, 4] : [4, 5], n <= 3 ? 3.1 : 4.0, {
         prompt: `Which picture has ${n} ${n === 1 ? one : many}?`, ...mix(rep(e, n), options.map((m) => rep(e, m))),
       });
     }
@@ -737,7 +740,7 @@
       });
     }
   }
-  const spread = () => sample([1, 3, 6], 3); // easy: big gaps
+  const spread = () => sample([1, 3, 5], 3); // easy: big gaps
   const near = () => { const s = 3 + randInt(3); return sample([s, s + 1, s + 2], 3); }; // hard: off by one
   addCompare("more", [3, 4], 3.5, "MORE", spread);
   addCompare("fewer", [4, 5], 4.2, "FEWER", spread);
@@ -776,7 +779,7 @@
 
   // Number sequences: [kind, ages, level, step, starts]
   const SEQUENCES = [
-    ["count-on", [5, 6], 5.6, 1, range(1, 7)],
+    ["count-on", [5, 6], 5.6, 1, range(1, 5)],
     ["count-by-2", [6, 7], 6.4, 2, range(0, 8)],
     ["count-down", [6, 7], 6.5, -1, range(6, 12)],
     ["count-by-5", [7, 7], 7.0, 5, [0, 5, 10, 15, 20]],
@@ -791,10 +794,10 @@
     }
   }
 
-  for (const n of range(1, 9)) {
+  for (const n of range(1, 8)) {
     add("quant", "after", [5, 6], 5.2, { prompt: `Which number comes right after ${n}?`, ...mixNums(n + 1, [n, n + 2]) });
   }
-  for (const n of range(3, 20)) {
+  for (const n of range(3, 19)) {
     add("quant", "before", [6, 7], 6.2, { prompt: `Which number comes right before ${n}?`, ...mixNums(n - 1, [n + 1, n - 2]) });
   }
 
@@ -833,8 +836,221 @@
     const n = 4 + randInt(4), k = 1 + randInt(3), m = 1 + randInt(3);
     const right = n - k + m;
     add("quant", "two-step-story", [7, 7], 7.0, {
-      prompt: `${n} ${many}. ${k} go away, then ${m} more come. How many ${many} now?`,
+      prompt: `${n} ${many}. ${k} ${k === 1 ? "goes" : "go"} away, then ${m} more ${m === 1 ? "comes" : "come"}. How many ${many} now?`,
       visual: Array(n).fill(e), ...mixNums(right, [right - 1, right + 1]),
+    });
+  }
+
+  // ── More number questions ──
+  // Biggest number a child is asked to see, count or produce, by youngest age:
+  // 3 → 5, 4–5 → 10, 6 → 20, 7 → 100 (counting by tens; sums stay within 20).
+  // Based on typical early-maths milestones; the validator checks every item.
+
+  const dice = (dots) => ({ dots });
+
+  for (const n of range(1, 6)) {
+    for (let v = 0; v < 3; v++) {
+      const small = n <= 3;
+      const wrong = sample(range(1, small ? 4 : 6).filter((m) => m !== n), 2);
+      add("quant", small ? "dice-which" : "dice-which-big", small ? [3, 4] : [4, 5], small ? 3.4 : 4.4, {
+        prompt: `Which dice has ${n} ${n === 1 ? "dot" : "dots"}?`, ...mix(dice(n), wrong.map(dice)),
+      });
+    }
+    add("quant", "dice-count", [4, 5], 4.2, { prompt: "How many dots?", visual: [dice(n)], ...mixNums(n, [n + 1, n - 1, n + 2]) });
+  }
+
+  for (let i = 0; i < 50; i++) {
+    const [[a, , aMany], [b]] = sample(COUNT, 2);
+    const n = 1 + randInt(4);
+    const wrongs = [n - 1, n + 1].filter((m) => m >= 1);
+    if (wrongs.length < 2) wrongs.push(n + 2);
+    add("quant", "same-number", [3, 4], 3.7, {
+      prompt: "Which one has the SAME number?", say: `Which group has the same number as the ${aMany}?`,
+      visual: [rep(a, n)], ...mix(rep(b, n), wrongs.map((m) => rep(b, m))),
+    });
+  }
+
+  for (let i = 0; i < 50; i++) {
+    const [e, , many] = pick(COUNT);
+    const less = i % 2 === 1;
+    const n = less ? 2 + randInt(5) : 1 + randInt(5); // one less: 2–6; one more: 1–5
+    const right = less ? n - 1 : n + 1;
+    const wrongs = [n, less ? n - 2 : n + 2].filter((m) => m >= 1);
+    if (wrongs.length < 2) wrongs.push(n + 1);
+    add("quant", less ? "one-less" : "one-more", less ? [5, 6] : [4, 5], less ? 5.0 : 4.3, {
+      prompt: `Which picture shows ONE ${less ? "LESS" : "MORE"}?`,
+      say: `Here are ${n} ${many}. Which picture shows one ${less ? "less" : "more"}?`,
+      visual: [rep(e, n)], ...mix(rep(e, right), wrongs.map((m) => rep(e, m))),
+    });
+  }
+
+  // Rough weights; only things at least 2 apart are compared.
+  const WEIGHT = [["🪶", 0], ["🎈", 0], ["🐜", 1], ["🍓", 1], ["🐭", 2], ["🍎", 2], ["🐱", 4], ["🐶", 5], ["🐷", 6],
+    ["🐴", 8], ["🚗", 9], ["🐘", 10], ["🚌", 10]];
+  for (let made = 0; made < 50; ) {
+    const three = sample(WEIGHT, 3).sort((x, y) => x[1] - y[1]);
+    if (three[1][1] - three[0][1] < 2 || three[2][1] - three[1][1] < 2) continue;
+    const heavy = made % 2 === 0;
+    const right = heavy ? three[2][0] : three[0][0];
+    add("quant", heavy ? "heaviest" : "lightest", [3, 5], heavy ? 3.6 : 4.0, {
+      prompt: `Which one is the ${heavy ? "HEAVIEST" : "LIGHTEST"}?`, ...mix(right, three.map(([e]) => e).filter((e) => e !== right)),
+    });
+    made++;
+  }
+
+  const RACERS = ["🐕", "🐈", "🐎", "🐖", "🐄", "🐇", "🐢", "🐌", "🐓", "🐁", "🦔", "🐿️"];
+  const PLACES = [["FIRST", 0, [4, 5], 4.2], ["LAST", -1, [4, 5], 4.6], ["SECOND", 1, [5, 6], 5.3], ["THIRD", 2, [5, 6], 5.6]];
+  for (const [word, at, ages, level] of PLACES) {
+    for (let v = 0; v < 15; v++) {
+      const line = sample(RACERS, 4);
+      const right = line.at(at);
+      add("quant", "ordinal", ages, level, {
+        prompt: `They are racing to the flag. Who is ${word}?`, visual: ["🏁", ...line],
+        ...mix(right, sample(line, 2, [right])),
+      });
+    }
+  }
+
+  for (const n of range(1, 10)) {
+    const wrongs = sample(range(1, 10).filter((m) => m !== n), 2);
+    add("quant", "tap-number", [4, 5], 4.5, { prompt: `Tap the number ${n}.`, ...mix(String(n), wrongs.map(String)) });
+    if (n >= 3 && n <= 8) {
+      for (const [e] of sample(COUNT, 2)) {
+        add("quant", "match-numeral", [5, 6], 5.2, {
+          prompt: "Which picture shows this many?", visual: [String(n)], ...mix(rep(e, n), [n - 1, n + 1].map((m) => rep(e, m))),
+        });
+      }
+    }
+  }
+
+  // Ten frames: 2 rows of 5, filled left to right.
+  const tenFrame = (n, e) => range(0, 9).map((i) => (i < n ? e : ""));
+  for (const n of range(4, 10)) {
+    for (const e of sample(["🔴", "🔵", "🟢", "🟡", "⭐", "🍎", "🐞"], 3)) {
+      add("quant", "ten-frame", [5, 6], 5.4, {
+        prompt: "How many are in the boxes?", grid: 5, visual: tenFrame(n, e), ...mixNums(n, [n - 1, n + 1, n - 2], 10),
+      });
+    }
+  }
+  for (const n of range(2, 9)) {
+    for (const e of sample(["🔴", "🔵", "🟢", "⭐"], 2)) {
+      add("quant", "make-ten", [6, 7], 6.5, {
+        prompt: "How many more to fill all 10 boxes?", grid: 5, visual: tenFrame(n, e),
+        ...mixNums(10 - n, [10 - n + 1, 10 - n - 1, n]),
+      });
+    }
+  }
+
+  // Missing number in a run: within 10 at ages 5–6, within 20 at 6–7.
+  for (const [lo, hi, ages, level, max] of [[1, 7, [5, 6], 5.7, 10], [8, 17, [6, 7], 6.6, 20]]) {
+    for (const s of range(lo, hi)) {
+      const gap = 1 + randInt(2);
+      const run = range(s, s + 3).map(String);
+      const right = Number(run[gap]);
+      run[gap] = "?";
+      add("quant", "missing-number", ages, level, {
+        prompt: "Which number is missing?", visual: run, ...mixNums(right, [right + 2, right - 2, right + 1, right - 1], max),
+      });
+    }
+  }
+
+  // Written sums: within 10 at age 6, within 20 at age 7.
+  for (let i = 0; i < 120; i++) {
+    const big = i % 2 === 1;
+    const minus = i % 4 >= 2;
+    const total = big ? 11 + randInt(8) : 4 + randInt(7);
+    const a = 1 + randInt(total - 1);
+    const [x, y, right] = minus ? [total, a, total - a] : [a, total - a, total];
+    add("quant", `${minus ? "subtract" : "add"}-written${big ? "-20" : ""}`, big ? [7, 7] : [6, 7], big ? 7.0 : 6.4, {
+      prompt: `${x} ${minus ? "−" : "+"} ${y} = ?`, say: `What is ${x} ${minus ? "take away" : "plus"} ${y}?`,
+      ...mixNums(right, [right + 1, right - 1, right + 2]),
+    });
+  }
+
+  for (const n of range(1, 10)) {
+    add("quant", "doubles", n <= 5 ? [6, 7] : [7, 7], n <= 5 ? 6.3 : 7.0, {
+      prompt: `${n} + ${n} = ?`, say: `What is ${n} plus ${n}?`, ...mixNums(2 * n, [2 * n + 1, 2 * n - 1, 2 * n + 2, 2 * n - 2], 20),
+    });
+  }
+
+  for (let i = 0; i < 40; i++) {
+    const total = 4 + randInt(7);
+    const a = 1 + randInt(total - 1);
+    add("quant", "missing-addend", [7, 7], 7.0, {
+      prompt: `${a} + ? = ${total}`, say: `${a} plus what makes ${total}?`, ...mixNums(total - a, [total - a + 1, total - a - 1, total]),
+    });
+  }
+
+  for (let i = 0; i < 30; i++) {
+    const n = 10 + randInt(80);
+    add("quant", "ten-more", [7, 7], 7.0, { prompt: `What is 10 more than ${n}?`, ...mixNums(n + 10, [n + 1, n + 11, n + 20]) });
+  }
+
+  for (let i = 0; i < 40; i++) {
+    const [e, , many] = pick(COUNT);
+    const groups = 2 + randInt(2), each = 2 + randInt(groups === 2 ? 3 : 2); // totals ≤ 9
+    const total = groups * each;
+    add("quant", "equal-groups", [7, 7], 7.0, {
+      prompt: `${groups} plates with ${each} ${many} on each. How many ${many} in all?`,
+      visual: Array(groups).fill(rep(e, each)), ...mixNums(total, [total - 1, total + 1, groups + each]),
+    });
+  }
+
+  for (let i = 0; i < 40; i++) {
+    const [e, , many] = pick(COUNT);
+    const friends = i % 3 === 2 ? 3 : 2;
+    const each = 1 + randInt(friends === 2 ? 4 : 2); // up to 8 shared by 2, or 6 by 3
+    const n = friends * each;
+    const easy = friends === 2 && n <= 6;
+    add("quant", "fair-share", easy ? [6, 7] : [7, 7], easy ? 6.4 : 7.0, {
+      prompt: `Share ${n} ${many} fairly between ${friends} friends. How many does each get?`,
+      visual: Array(n).fill(e), ...mixNums(each, [each + 1, each - 1, n]),
+    });
+  }
+
+  const clock = (h) => String.fromCodePoint(0x1f54f + h); // 🕐 is 1 o'clock … 🕛 is 12
+  for (const h of range(1, 12)) {
+    for (let v = 0; v < 2; v++) {
+      add("quant", "clock", [6, 7], 6.7, {
+        prompt: `Which clock shows ${h} o'clock?`, ...mix(clock(h), sample(range(1, 12), 2, [h]).map(clock)),
+      });
+    }
+  }
+
+  for (const [name, sides] of [["triangle", 3], ["square", 4], ["house", 5]]) {
+    for (const c of sample(COLORS, 3)) {
+      add("quant", "sides", [5, 6], 5.8, {
+        prompt: "How many sides does this shape have?", visual: [shape(name, c)], ...mixNums(sides, [sides + 1, sides - 1]),
+      });
+    }
+  }
+
+  for (let i = 0; i < 30; i++) {
+    const nums = sample(range(1, 10), 3);
+    const big = i % 2 === 0;
+    const right = big ? Math.max(...nums) : Math.min(...nums);
+    add("quant", "compare-numbers-10", [5, 6], 5.5, {
+      prompt: `Which number is the ${big ? "BIGGEST" : "SMALLEST"}?`, ...mix(String(right), nums.filter((n) => n !== right).map(String)),
+    });
+  }
+
+  // Picture stories in different words, within 10.
+  const STORIES = [
+    ["🐦", (a, b) => `${a} birds sit in a tree. ${b} more land. How many birds now?`, "+"],
+    ["🦆", (a, b) => `${a} ducks swim in the pond. ${b} more jump in. How many ducks now?`, "+"],
+    ["🐸", (a, b) => `${a} frogs sit on a log. ${b} hop away. How many frogs are left?`, "-"],
+    ["🎈", (a, b) => `You have ${a} balloons. ${b} fly away. How many are left?`, "-"],
+    ["🍪", (a, b) => `Dad bakes ${a} cookies, then ${b} more. How many cookies?`, "+"],
+    ["🍎", (a, b) => `${a} apples are on a tree. ${b} fall down. How many are still on the tree?`, "-"],
+  ];
+  for (let i = 0; i < 60; i++) {
+    const [e, text, op] = STORIES[i % STORIES.length];
+    const a = op === "+" ? 2 + randInt(5) : 4 + randInt(6);
+    const b = op === "+" ? 1 + randInt(Math.min(4, 10 - a)) : 1 + randInt(Math.min(4, a - 1));
+    const right = op === "+" ? a + b : a - b;
+    add("quant", "story", [5, 6], 5.8, {
+      prompt: text(a, b), visual: op === "+" ? [rep(e, a), "➕", rep(e, b)] : Array(a).fill(e),
+      ...mixNums(right, [right + 1, right - 1, op === "+" ? a : a + b], 10),
     });
   }
 })();

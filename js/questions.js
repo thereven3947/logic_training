@@ -20,7 +20,7 @@
 //         with `distractors`; tap every target within `seconds`.
 //
 // Item formats: "🍎" emoji/text · "?" blank slot · "" empty cell ·
-//   { e, size, rot, flip, shadow } styled emoji · { e, label } emoji with a caption ·
+//   { e, size, rot, flip, shadow } styled emoji · { e, label } emoji with a caption · { dots } dice face 1–6 ·
 //   { shape, color, size, rot } CSS shape (circle|square|triangle|house|star) ·
 //   { blocks, rot } red/white block pattern, 1, 4 or 9 cells:
 //     R red · W white · a/b/c/d half red in top-left/top-right/bottom-right/bottom-left · ? blank

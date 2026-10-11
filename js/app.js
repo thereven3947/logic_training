@@ -51,13 +51,45 @@ function showScreen(id) {
   $(id).classList.add("active");
 }
 
+// Many speakers (Bluetooth ones especially) sleep when idle and swallow the
+// first words of a sentence while waking up. A near-silent tone keeps them on.
+// Browsers only allow audio after a tap, so this runs from the age/start buttons.
+let audioCtx;
+function keepAudioAwake() {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return;
+  if (audioCtx) return audioCtx.resume();
+  audioCtx = new AudioContext();
+  const tone = audioCtx.createOscillator();
+  const volume = audioCtx.createGain();
+  tone.frequency.value = 30;
+  volume.gain.value = 0.0005; // inaudible
+  tone.connect(volume).connect(audioCtx.destination);
+  tone.start();
+}
+
+// Speaking straight after cancel() clips the start of the sentence in
+// Chrome/Edge, so wait a moment between stopping old speech and starting new.
+const SPEECH_GAP_MS = 250;
+let speechTimer;
+let utterance; // kept referenced so it isn't garbage-collected mid-sentence
+
 function speak(text) {
   if (!("speechSynthesis" in window)) return;
+  clearTimeout(speechTimer);
+  const busy = speechSynthesis.speaking || speechSynthesis.pending;
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.rate = 0.9;
-  u.pitch = 1.2;
-  speechSynthesis.speak(u);
+  speechTimer = setTimeout(() => {
+    utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1.2;
+    speechSynthesis.speak(utterance);
+  }, busy ? SPEECH_GAP_MS : 50);
+}
+
+function stopSpeech() {
+  clearTimeout(speechTimer);
+  if ("speechSynthesis" in window) speechSynthesis.cancel();
 }
 
 function later(fn, ms) {
@@ -95,6 +127,9 @@ function shuffledChoices(q) {
 
 // ── Rendering ──
 
+// Dot positions (cells of a 3×3 grid) for dice faces 1–6.
+const DICE_DOTS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+
 function renderItem(item) {
   if (item === "?") return el("span", "blank", "?");
   if (typeof item === "string") return el("span", "", item);
@@ -106,6 +141,9 @@ function renderItem(item) {
     for (const code of item.blocks) {
       node.appendChild(code === "?" ? el("span", "blank", "?") : el("span", `block b-${code}`));
     }
+  } else if (item.dots) {
+    node = el("span", "dice");
+    for (let i = 0; i < 9; i++) node.appendChild(el("i", DICE_DOTS[item.dots].includes(i) ? "on" : ""));
   } else if (item.label) {
     node = el("span", "labelled");
     node.append(el("span", "", item.e), el("small", "", item.label));
@@ -188,6 +226,7 @@ function buildQueue(age) {
 }
 
 function startGame() {
+  keepAudioAwake();
   state.name = $("child-name").value.trim() || "Friend";
   state.queue = buildQueue(state.age);
   state.index = 0;
@@ -336,6 +375,7 @@ document.querySelectorAll("#age-picker button").forEach((btn) => {
     document.querySelectorAll("#age-picker button").forEach((b) => b.classList.remove("selected"));
     btn.classList.add("selected");
     state.age = Number(btn.dataset.age);
+    keepAudioAwake();
     $("btn-start").disabled = false;
   };
 });
@@ -344,7 +384,7 @@ $("btn-start").onclick = startGame;
 $("btn-restart").onclick = () => showScreen("screen-start");
 $("btn-home").onclick = () => {
   clearTimers();
-  speechSynthesis?.cancel();
+  stopSpeech();
   showScreen("screen-start");
 };
 $("btn-speak").onclick = () => speak(state.spoken);
