@@ -15,6 +15,15 @@ kids_iq_test/
 
 ## Domains
 Modelled on the WPPSI-IV primary indexes plus Stanford-Binet 5 quantitative reasoning.
+The game follows the WPPSI-IV layout:
+
+| Age | Areas played | Items per game |
+|---|---|---|
+| 3 | Words, Shapes & Space, Memory (the WPPSI-IV has no reasoning or speed areas under 4) | 6 each, 18 in total |
+| 4–7 | Reasoning, Words, Shapes & Space, Memory (6 each), Speed (4 timed rounds), Numbers (4) | 32 in total |
+
+Numbers is an extra area from the Stanford-Binet. It is played and shown on the result screen
+but isn't part of the play score, since the WPPSI-IV doesn't include it.
 All items are original — none are copied from a published test.
 
 | Domain | Mirrors | Item types |
@@ -28,8 +37,7 @@ All items are original — none are copied from a published test.
 
 ## Age selection and random questions
 The child picks an age (3–7) on the start screen. The bank holds about 4,400 questions, with
-roughly 50–710 per area for each age (Speed has the fewest). Each game draws a fresh random set (18 items at age 3,
-25–27 at ages 4–7; see `ITEMS_PER_TEST` in `app.js`):
+roughly 50–710 per area for each age (Speed has the fewest). Each game draws a fresh random set (see `ITEMS_PER_TEST` in `app.js`):
 - Only items whose `ages: [min, max]` range includes the chosen age are used.
 - Within each area, the age-matched pool is sorted by difficulty (`level`) and cut into bands.
   One item is picked from each band, so a game still runs easy → hard.
@@ -71,7 +79,10 @@ This is a summary for transparency, not legal advice.
   first words being cut off, speech waits a moment after cancelling earlier speech, and a silent
   tone keeps the speaker awake (Bluetooth speakers otherwise drop the start while waking up).
 - Wrong answers let the child retry; only first-try answers count toward stars.
-- A domain stops early after 2 first-try misses in a row, like a real test's discontinue rule.
+- An area stops early after 3 first-try misses in a row, like a real test's discontinue rule.
+  Items it skips count as misses, as they would on a real test.
+- Each area is scored on its own (correct ÷ items planned), and the play score uses the average
+  of the areas. So every area counts the same, however many items it has.
 - The result screen shows a **play score** (IQ-style, 70–130). It is *not* normed: 100 is pinned to an
   assumed 70% first-try rate, ±10 points per 10%, rounded to 5s (`playScore` in `app.js`). The screen says so.
 - This is a practice/enrichment game, **not** a clinical IQ assessment — there are no norms.

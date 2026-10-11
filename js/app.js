@@ -1,19 +1,25 @@
 const $ = (id) => document.getElementById(id);
 
 // Like real tests, stop a section after this many first-try misses in a row.
-const MAX_MISSES_IN_A_ROW = 2;
+const MAX_MISSES_IN_A_ROW = 3;
 // Speed rounds forgive one stray tap.
 const SPEED_MISTAKES_ALLOWED = 1;
 
 // Items per area in one game, by age. Each game draws this many from the much
-// larger bank, so repeat players see different puzzles.
+// larger bank, so repeat players see different puzzles. The areas follow the
+// WPPSI-IV layout: under 4 it uses only words, shapes and memory; from 4 it
+// adds reasoning and speed, with every area weighted the same.
 const ITEMS_PER_TEST = {
-  3: { fluid: 4, verbal: 4, spatial: 4, memory: 3, speed: 0, quant: 3 },
-  4: { fluid: 5, verbal: 5, spatial: 5, memory: 4, speed: 2, quant: 4 },
-  5: { fluid: 5, verbal: 5, spatial: 5, memory: 4, speed: 3, quant: 4 },
-  6: { fluid: 5, verbal: 5, spatial: 5, memory: 4, speed: 3, quant: 5 },
-  7: { fluid: 5, verbal: 5, spatial: 4, memory: 5, speed: 3, quant: 5 },
+  3: { fluid: 0, verbal: 6, spatial: 6, memory: 6, speed: 0, quant: 0 },
+  4: { fluid: 6, verbal: 6, spatial: 6, memory: 6, speed: 4, quant: 4 },
+  5: { fluid: 6, verbal: 6, spatial: 6, memory: 6, speed: 4, quant: 4 },
+  6: { fluid: 6, verbal: 6, spatial: 6, memory: 6, speed: 4, quant: 4 },
+  7: { fluid: 6, verbal: 6, spatial: 6, memory: 6, speed: 4, quant: 4 },
 };
+
+// Numbers come from the Stanford-Binet, not the WPPSI, so they're played and
+// shown but left out of the play score.
+const UNSCORED = new Set(["quant"]);
 
 // Play score: an IQ-style number with NO norms behind it. 100 is pinned to an
 // assumed (not measured) first-try rate for a typical child on age-matched items;
@@ -35,7 +41,7 @@ const state = {
   spoken: "",
   found: new Set(),
   mistakes: 0,
-  results: {}, // { domain: { correct, total, streak, stopped } }
+  results: {}, // { domain: { planned, correct, total, streak, stopped } }
   timers: [],
 };
 
@@ -231,7 +237,10 @@ function startGame() {
   state.queue = buildQueue(state.age);
   state.index = 0;
   state.results = {};
-  state.queue.forEach((q) => (state.results[q.domain] ??= { correct: 0, total: 0, streak: 0, stopped: false }));
+  state.queue.forEach((q) => {
+    state.results[q.domain] ??= { planned: 0, correct: 0, total: 0, streak: 0, stopped: false };
+    state.results[q.domain].planned++;
+  });
   showScreen("screen-quiz");
   renderQuestion();
 }
@@ -346,9 +355,17 @@ function nextQuestion() {
   else showResult();
 }
 
+// Like a real test, each area is scored on its own and the areas count equally.
+// Items skipped after a section stopped early count as misses.
+function overallRate() {
+  const rates = Object.entries(state.results)
+    .filter(([domain]) => !UNSCORED.has(domain))
+    .map(([, r]) => r.correct / r.planned);
+  return rates.reduce((sum, x) => sum + x, 0) / rates.length;
+}
+
 function showResult() {
-  const correct = Object.values(state.results).reduce((sum, r) => sum + r.correct, 0);
-  const rate = correct / state.queue.length;
+  const rate = overallRate();
   const stars = Math.max(1, Math.round(rate * 5));
 
   $("result-name").textContent = state.name;
@@ -358,8 +375,9 @@ function showResult() {
   $("result-breakdown").innerHTML = DOMAINS.filter((d) => state.results[d.key])
     .map((d) => {
       const r = state.results[d.key];
-      const dots = '<i class="dot on"></i>'.repeat(r.correct) + '<i class="dot"></i>'.repeat(r.total - r.correct);
-      const note = r.stopped ? `<small>stopped early</small>` : "";
+      const dots = '<i class="dot on"></i>'.repeat(r.correct) + '<i class="dot"></i>'.repeat(r.planned - r.correct);
+      const notes = [r.stopped && "stopped early", UNSCORED.has(d.key) && "extra, not in score"].filter(Boolean);
+      const note = notes.length ? `<small>${notes.join(" · ")}</small>` : "";
       return `<div><span>${d.icon} ${d.name}</span><span>${dots} ${note}</span></div>`;
     })
     .join("");
