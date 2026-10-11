@@ -4,7 +4,7 @@ A playful, tablet-friendly reasoning game for preschoolers. No build step — op
 
 ## Structure
 ```
-kids_iq_test/
+logic_training/
 ├── index.html        # Screens: start (name + age) → quiz → result
 ├── css/style.css     # Big, touch-friendly kid UI
 └── js/
