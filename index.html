@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Little Thinkers – Brain Games (Ages 3–7)</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <main id="app">
+    <!-- Start screen -->
+    <section id="screen-start" class="screen active">
+      <h1>🧠 Little Thinkers</h1>
+      <p class="subtitle">Fun puzzles for ages 3–7</p>
+      <label class="name-label">
+        What's your name?
+        <input id="child-name" type="text" maxlength="20" placeholder="Name" />
+      </label>
+      <p class="name-label">How old are you?</p>
+      <div id="age-picker" class="age-picker">
+        <button data-age="3">3</button>
+        <button data-age="4">4</button>
+        <button data-age="5">5</button>
+        <button data-age="6">6</button>
+        <button data-age="7">7</button>
+      </div>
+      <button id="btn-start" class="big-btn" disabled>▶ Let's Play!</button>
+    </section>
+
+    <!-- Question screen -->
+    <section id="screen-quiz" class="screen">
+      <div class="progress"><div id="progress-bar"></div></div>
+      <p id="q-category" class="category"></p>
+      <h2 id="q-prompt" class="prompt"></h2>
+      <div id="timer" class="timer"><div id="timer-bar"></div></div>
+      <div id="q-visual" class="visual"></div>
+      <div id="q-choices" class="choices"></div>
+      <button id="btn-home" class="corner-btn left" title="Quit">🏠</button>
+      <button id="btn-speak" class="corner-btn" title="Read aloud">🔊</button>
+    </section>
+
+    <!-- Result screen -->
+    <section id="screen-result" class="screen">
+      <h1>🎉 Great job, <span id="result-name"></span>!</h1>
+      <div id="result-stars" class="stars"></div>
+      <div id="result-breakdown" class="breakdown"></div>
+      <p class="note">
+        Puzzles were picked for age <span id="result-age"></span>.
+        This is a playful practice game, not a clinical IQ assessment.
+      </p>
+      <button id="btn-restart" class="big-btn">🔄 Play Again</button>
+    </section>
+  </main>
+
+  <script src="js/questions.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
