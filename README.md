@@ -33,4 +33,6 @@ includes that age are used, grouped by domain, easy → hard (18 items at age 3,
 - Prompts are read aloud (Web Speech API) since most young children can't read yet.
 - Wrong answers let the child retry; only first-try answers count toward stars.
 - A domain stops early after 2 first-try misses in a row, like a real test's discontinue rule.
+- The result screen shows a **play score** (IQ-style, 70–130). It is *not* normed: 100 is pinned to an
+  assumed 70% first-try rate, ±10 points per 10%, rounded to 5s (`playScore` in `app.js`). The screen says so.
 - This is a practice/enrichment game, **not** a clinical IQ assessment — there are no norms.

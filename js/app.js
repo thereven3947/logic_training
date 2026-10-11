@@ -5,6 +5,17 @@ const MAX_MISSES_IN_A_ROW = 2;
 // Speed rounds forgive one stray tap.
 const SPEED_MISTAKES_ALLOWED = 1;
 
+// Play score: an IQ-style number with NO norms behind it. 100 is pinned to an
+// assumed (not measured) first-try rate for a typical child on age-matched items;
+// each 10% above/below moves it 10 points, clamped to 70–130 and rounded to 5s.
+const TYPICAL_FIRST_TRY_RATE = 0.7;
+const POINTS_PER_RATE = 100;
+
+function playScore(rate) {
+  const raw = 100 + (rate - TYPICAL_FIRST_TRY_RATE) * POINTS_PER_RATE;
+  return Math.round(Math.min(130, Math.max(70, raw)) / 5) * 5;
+}
+
 const state = {
   name: "",
   age: null,
@@ -246,15 +257,17 @@ function nextQuestion() {
 
 function showResult() {
   const correct = Object.values(state.results).reduce((sum, r) => sum + r.correct, 0);
-  const stars = Math.max(1, Math.round((correct / state.queue.length) * 5));
+  const rate = correct / state.queue.length;
+  const stars = Math.max(1, Math.round(rate * 5));
 
   $("result-name").textContent = state.name;
   $("result-age").textContent = state.age;
   $("result-stars").textContent = "⭐".repeat(stars) + "☆".repeat(5 - stars);
+  $("result-score").textContent = `~${playScore(rate)}`;
   $("result-breakdown").innerHTML = DOMAINS.filter((d) => state.results[d.key])
     .map((d) => {
       const r = state.results[d.key];
-      const dots = "●".repeat(r.correct) + "○".repeat(r.total - r.correct);
+      const dots = '<i class="dot on"></i>'.repeat(r.correct) + '<i class="dot"></i>'.repeat(r.total - r.correct);
       const note = r.stopped ? `<small>stopped early</small>` : "";
       return `<div><span>${d.icon} ${d.name}</span><span>${dots} ${note}</span></div>`;
     })

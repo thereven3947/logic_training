@@ -182,6 +182,9 @@ span.blocks {
 .corner-btn.left { right: auto; left: 24px; }
 
 .stars { font-size: 3.5rem; margin: 18px 0; }
+.score { font-size: 1.4rem; margin: -6px auto 18px; max-width: 420px; }
+.score strong { font-size: 2.2rem; color: #ff8c42; margin-left: 6px; }
+.score small { display: block; font-size: 0.85rem; color: #888; margin-top: 4px; }
 .breakdown {
   background: #fff;
   border-radius: 20px;
@@ -193,8 +196,10 @@ span.blocks {
   line-height: 1.9;
 }
 .breakdown div { display: flex; justify-content: space-between; gap: 12px; }
-.breakdown span:last-child { color: #6cc070; letter-spacing: 2px; }
-.breakdown small { color: #999; letter-spacing: 0; }
+.breakdown span:last-child { display: flex; align-items: center; gap: 5px; }
+.dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #6cc070; }
+.dot.on { background: #6cc070; }
+.breakdown small { color: #999; margin-left: 4px; }
 .note { font-size: 0.9rem; color: #888; margin-bottom: 22px; }
 
 @keyframes pop { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
